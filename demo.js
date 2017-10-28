@@ -1,6 +1,7 @@
 'use strict';
 /** lit-element (https://github.com/kenchris/lit-element) is not yet on npm (there is another thing there with that name) */
 import { html, LitElement } from './lit-element/index.js';
+import {repeat} from './lit-element/node_modules/lit-html/lib/repeat.js';
 
 const productApiUrl = 'http://www.json-generator.com/api/json/get/celLKmqymq';
 
@@ -42,7 +43,7 @@ export class ProductListElement extends LitElement {
             </style>
             <h1>Product List</h1>
             <button on-click="${this.onSort}">sort 500 products ny name</button>
-            ${this.products.map(product=>html`
+            ${repeat(this.products, (product) => product.id, (product) => html`
                 <product-item product=${product} on-buy=${(e)=> { this.onBuy(product, e.detail.count) }}></product-item>
             `)}
         `
