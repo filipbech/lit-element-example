@@ -12,7 +12,7 @@ export class LitElement extends HTMLElement {
         return [];
     }
     static get observedAttributes() {
-        let attrs = [];
+        const attrs = [];
         for (const prop in this.properties) {
             if (this.properties[prop].attrName) {
                 attrs.push(prop);
@@ -26,7 +26,7 @@ export class LitElement extends HTMLElement {
             Object.defineProperty(this.prototype, prop, {
                 get() { return this._values[prop] || value; },
                 set(v) {
-                    let value = typeFn(v);
+                    const value = typeFn(v);
                     this._values[prop] = value;
                     if (attrName) {
                         if (typeFn.name === 'Boolean') {
@@ -47,15 +47,13 @@ export class LitElement extends HTMLElement {
         }
         return this;
     }
-    renderCallback() {
-        //FBB: idea -> should we call this with `this` so you can use destructuring assignment (like preact does with state and props)
+    render() {
         return html ``;
     }
     attributeChangedCallback(prop, _oldValue, newValue) {
         const { type: typeFn } = this.constructor.properties[prop];
         if (typeFn.name === 'Boolean') {
-            //FBB: I believe there is a bug here! 
-            this._values[prop] = !newValue || (newValue === prop);
+            this._values[prop] = (newValue === '') || (newValue === prop);
         }
         else {
             this._values[prop] = typeFn(newValue);
@@ -66,13 +64,15 @@ export class LitElement extends HTMLElement {
         // FIXME: Should we force render here?
         this.invalidate();
     }
-    invalidate() {
+    async invalidate() {
         if (!this._needsRender) {
             this._needsRender = true;
-            Promise.resolve().then(() => {
-                this._needsRender = false;
-                render(this.renderCallback(), this.shadowRoot);
-            });
+            // Schedule the following as micro task, which runs before
+            // requestAnimationFrame. All additional invalidate() calls
+            // before will be ignored.
+            // https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+            this._needsRender = await false;
+            render(this.render(), this.shadowRoot);
         }
     }
     $(id) {
@@ -87,5 +87,4 @@ export class LitElement extends HTMLElement {
         return value;
     }
 }
-;
 //# sourceMappingURL=lit-element.js.map

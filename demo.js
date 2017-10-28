@@ -33,8 +33,13 @@ export class ProductListElement extends LitElement {
         alert(`buy ${count} of these: ${product.name}`);
     }
 
-    renderCallback() {
+    render() {
         return html`
+            <style>
+                product-item[favorite] {
+                    border-color:red;
+                }
+            </style>
             <h1>Product List</h1>
             <button on-click="${this.onSort}">sort 500 products ny name</button>
             ${this.products.map(product=>html`
@@ -52,7 +57,18 @@ export class ProductItemElement extends LitElement {
             product: {
                 type: Object
             },
+            favorite: {
+                type: Boolean,
+                attrName:'favorite'
+            }
         };
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        setTimeout(_=>{
+            this.favorite = this.product.isfavorite;
+        }, 0);
     }
 
     constructor() {
@@ -68,7 +84,7 @@ export class ProductItemElement extends LitElement {
         }));
     }
 
-    renderCallback() {
+    render() {
         return html`
             <style>
                 :host {

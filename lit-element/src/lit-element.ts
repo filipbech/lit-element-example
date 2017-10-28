@@ -2,11 +2,10 @@ import { html, render } from '../node_modules/lit-html/lib/lit-extended.js';
 import { TemplateResult } from '../node_modules/lit-html/lit-html.js';
 
 export { html } from '../node_modules/lit-html/lib/lit-extended.js';
-
 export interface PropertyDeclaration {
-  type: any;
+  type: (a: any) => any;
   value?: any;
-  attrName?: string
+  attrName?: string;
 }
 
 interface PropertyValues {
@@ -27,7 +26,7 @@ export class LitElement extends HTMLElement {
   }
 
   static get observedAttributes(): string[] {
-    let attrs = [];
+    const attrs = [];
     for (const prop in this.properties) {
       if (this.properties[prop].attrName) {
         attrs.push(prop);
@@ -45,15 +44,15 @@ export class LitElement extends HTMLElement {
     for (const prop in this.properties) {
       const { type: typeFn, value, attrName } = this.properties[prop];
 
-      Object.defineProperty(this.prototype, prop, <any>{
-        get() { return this._values[prop] || value; },
-        set(v:any) {
-          let value = typeFn(v)
+      Object.defineProperty(this.prototype, prop, {
+        get(this: LitElement) { return this._values[prop] || value; },
+        set(this: LitElement, v) {
+          const value = typeFn(v);
           this._values[prop] = value;
           if (attrName) {
             if (typeFn.name === 'Boolean') {
               if (!value) {
-                this.removeAttribute(attrName);  
+                this.removeAttribute(attrName);
               } else {
                 this.setAttribute(attrName, attrName);
               }
@@ -68,18 +67,17 @@ export class LitElement extends HTMLElement {
     return this;
   }
 
-  renderCallback(): TemplateResult {
-    //FBB: idea -> should we call this with `this` so you can use destructuring assignment (like preact does with state and props)
+  render(): TemplateResult {
     return html``;
   }
-  
+
   attributeChangedCallback(prop: string, _oldValue: string, newValue: string) {
     const { type: typeFn } = (this.constructor as any).properties[prop];
+
     if (typeFn.name === 'Boolean') {
-      //FBB: I believe there is a bug here! 
-      this._values[prop] = !newValue || (newValue === prop);
+      this._values[prop] = (newValue === '') || (newValue === prop);
     } else {
-      this._values[prop] = typeFn(newValue)
+      this._values[prop] = typeFn(newValue);
     }
 
     this.invalidate();
@@ -90,13 +88,15 @@ export class LitElement extends HTMLElement {
     this.invalidate();
   }
 
-  invalidate() {
+  async invalidate() {
     if (!this._needsRender) {
       this._needsRender = true;
-      Promise.resolve().then(() => {
-        this._needsRender = false;
-        render(this.renderCallback(), (this.shadowRoot as any));
-      });
+      // Schedule the following as micro task, which runs before
+      // requestAnimationFrame. All additional invalidate() calls
+      // before will be ignored.
+      // https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+      this._needsRender = await false;
+      render(this.render(), this.shadowRoot as any);
     }
   }
 
@@ -111,4 +111,4 @@ export class LitElement extends HTMLElement {
     }
     return value;
   }
-};
+}
